@@ -1,0 +1,13 @@
+{
+  "lane_1": {
+    "video_path": "uploads/lane_1.mp4",
+    "active": true,
+    "vehicles": {
+      "car": 0,
+      "bus": 0,
+      "truck": 0
+    },
+    "waiting_time": 0,
+    "video_ended": false
+  }
+}

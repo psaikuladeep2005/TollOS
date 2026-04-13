@@ -1,0 +1,16 @@
+# Virtual env
+myenv/
+venv/
+env/
+
+# Cache
+__pycache__/
+*.pyc
+
+# Large files
+*.pt
+uploads/
+
+# OS
+.DS_Store
+Thumbs.db

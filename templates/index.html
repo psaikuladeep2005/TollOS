@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TollOS — Lane Intelligence Platform</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- Ambient Background -->
+<div class="ambient-bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+</div>
+
+<div class="app-shell">
+
+    <!-- ── SIDEBAR ── -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-mark">
+                <i class="fas fa-road"></i>
+            </div>
+            <span class="logo-text">TollOS</span>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" data-section="dashboard">
+                <i class="fas fa-gauge-high"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" class="nav-item" data-section="lanes">
+                <i class="fas fa-layer-group"></i>
+                <span>Lanes</span>
+                <span class="nav-badge" id="navLaneCount">0</span>
+            </a>
+            <a href="#" class="nav-item" data-section="analytics">
+                <i class="fas fa-chart-line"></i>
+                <span>Analytics</span>
+            </a>
+            <a href="#" class="nav-item" data-section="activity">
+                <i class="fas fa-bolt"></i>
+                <span>Activity</span>
+                <span class="nav-dot"></span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="formula-pill">
+                <div class="formula-pill-title">Wait Formula</div>
+                <div class="formula-pill-body">
+                    <span class="f-car">Car×2s</span>
+                    <span class="f-sep">+</span>
+                    <span class="f-bus">Bus×4s</span>
+                    <span class="f-sep">+</span>
+                    <span class="f-truck">Truck×6s</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ── MAIN AREA ── -->
+    <div class="main-wrap">
+
+        <!-- Top Navbar -->
+        <header class="topbar">
+            <button class="sidebar-toggle" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+
+            <div class="topbar-search">
+                <i class="fas fa-search"></i>
+                <input type="text" id="laneSearch" placeholder="Search lanes…" oninput="filterLanes(this.value)">
+            </div>
+
+            <div class="topbar-right">
+                <div class="live-pill">
+                    <span class="live-dot"></span>
+                    <span>LIVE</span>
+                </div>
+
+                <button class="btn btn-primary" onclick="exportReport()">
+    <i class="fas fa-download"></i> Export
+</button>
+
+                <button class="icon-btn theme-btn" onclick="toggleTheme()" title="Toggle Theme">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                </button>
+
+                <div class="avatar">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- ── CONTENT SECTIONS ── -->
+        <main class="content">
+
+            <!-- ── SECTION: Dashboard ── -->
+            <section class="section active" id="sec-dashboard">
+
+                <!-- Hero KPIs -->
+                <div class="kpi-grid">
+                    <div class="kpi-card" style="--accent: #3ecf8e">
+                        <div class="kpi-icon"><i class="fas fa-car"></i></div>
+                        <div class="kpi-body">
+                            <div class="kpi-label">Total Cars</div>
+                            <div class="kpi-value" id="totalCars">0</div>
+                            <div class="kpi-trend up"><i class="fas fa-arrow-trend-up"></i> Live</div>
+                        </div>
+                        <canvas class="kpi-sparkline" id="sparkCars" width="80" height="36"></canvas>
+                    </div>
+
+                    <div class="kpi-card" style="--accent: #f4b93e">
+                        <div class="kpi-icon"><i class="fas fa-bus"></i></div>
+                        <div class="kpi-body">
+                            <div class="kpi-label">Total Buses</div>
+                            <div class="kpi-value" id="totalBuses">0</div>
+                            <div class="kpi-trend up"><i class="fas fa-arrow-trend-up"></i> Live</div>
+                        </div>
+                        <canvas class="kpi-sparkline" id="sparkBuses" width="80" height="36"></canvas>
+                    </div>
+
+                    <div class="kpi-card" style="--accent: #e8445a">
+                        <div class="kpi-icon"><i class="fas fa-truck"></i></div>
+                        <div class="kpi-body">
+                            <div class="kpi-label">Total Trucks</div>
+                            <div class="kpi-value" id="totalTrucks">0</div>
+                            <div class="kpi-trend"><i class="fas fa-minus"></i> Steady</div>
+                        </div>
+                        <canvas class="kpi-sparkline" id="sparkTrucks" width="80" height="36"></canvas>
+                    </div>
+
+                    <div class="kpi-card" style="--accent: #a78bfa">
+                        <div class="kpi-icon"><i class="fas fa-hourglass-half"></i></div>
+                        <div class="kpi-body">
+                            <div class="kpi-label">Avg Wait Time</div>
+                            <div class="kpi-value"><span id="avgWaitTime">0</span><small>s</small></div>
+                            <div class="kpi-trend down"><i class="fas fa-arrow-trend-down"></i> Improving</div>
+                        </div>
+                        <canvas class="kpi-sparkline" id="sparkWait" width="80" height="36"></canvas>
+                    </div>
+                </div>
+
+                <!-- Best Lane Banner -->
+                <div class="champion-banner" id="bestLaneBanner">
+                    <div class="champion-glow"></div>
+                    <div class="champion-left">
+                        <div class="trophy-wrap">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <div>
+                            <div class="champion-label">FASTEST LANE RIGHT NOW</div>
+                            <div class="champion-name" id="bestLaneName">No Active Lanes</div>
+                        </div>
+                    </div>
+                    <div class="champion-right">
+                        <div class="champion-wait-label">Wait Time</div>
+                        <div class="champion-wait"><span id="bestLaneTime">0</span>s</div>
+                    </div>
+                </div>
+
+                <!-- Controls Row -->
+                <div class="controls-row">
+                    <div class="btn-cluster">
+                        <button class="btn btn-primary" onclick="addLane()">
+                            <i class="fas fa-plus"></i> Add Lane
+                        </button>
+                        <button class="btn btn-green" onclick="startAll()">
+                            <i class="fas fa-play"></i> Start All
+                        </button>
+                        <button class="btn btn-red" onclick="stopAll()">
+                            <i class="fas fa-stop"></i> Stop All
+                        </button>
+                    </div>
+                    <div class="active-pill">
+                        <i class="fas fa-layer-group"></i>
+                        <span id="totalLanes">0</span> lanes
+                    </div>
+                </div>
+
+                <!-- Lanes Grid -->
+                <div class="lanes-grid" id="lanesContainer">
+                    <div class="empty-state" id="noLanes">
+                        <div class="empty-icon"><i class="fas fa-traffic-light"></i></div>
+                        <h3>No Lanes Added</h3>
+                        <p>Click "Add Lane" to begin monitoring</p>
+                        <button class="btn btn-primary" onclick="addLane()">
+                            <i class="fas fa-plus"></i> Create First Lane
+                        </button>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ── SECTION: Analytics ── -->
+            <section class="section" id="sec-analytics">
+                <div class="section-header">
+                    <h2>Analytics</h2>
+                    <p>Aggregate vehicle distribution & lane performance</p>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <span>Vehicle Distribution</span>
+                            <i class="fas fa-circle-info"></i>
+                        </div>
+                        <div class="chart-wrap">
+                            <canvas id="pieChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card wide">
+                        <div class="chart-card-header">
+                            <span>Lane Performance (Wait Time)</span>
+                            <i class="fas fa-circle-info"></i>
+                        </div>
+                        <div class="chart-wrap">
+                            <canvas id="barChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Table -->
+                <div class="table-card">
+                    <div class="chart-card-header">
+                        <span>Lane Details</span>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Lane</th>
+                                    <th>Status</th>
+                                    <th>Cars</th>
+                                    <th>Buses</th>
+                                    <th>Trucks</th>
+                                    <th>Wait Time</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="statsTableBody">
+                                <tr class="empty-row"><td colspan="7">No data</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── SECTION: Activity Feed ── -->
+            <section class="section" id="sec-activity">
+                <div class="section-header">
+                    <h2>Activity Feed</h2>
+                    <p>Real-time system events and lane updates</p>
+                </div>
+                <div class="activity-panel">
+                    <div class="activity-header">
+                        <span class="live-pill"><span class="live-dot"></span> Live</span>
+                        <button class="btn-ghost" onclick="clearActivity()"><i class="fas fa-trash"></i> Clear</button>
+                    </div>
+                    <div class="activity-list" id="activityList">
+                        <div class="activity-empty">Activity will appear here once lanes are active…</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── SECTION: Lanes ── -->
+            <section class="section" id="sec-lanes">
+                <div class="section-header">
+                    <h2>Lane Management</h2>
+                    <p>Add, remove, or upload videos to individual lanes</p>
+                </div>
+                <div class="controls-row">
+                    <div class="btn-cluster">
+                        <button class="btn btn-primary" onclick="addLane()">
+                            <i class="fas fa-plus"></i> Add Lane
+                        </button>
+                        <button class="btn btn-green" onclick="startAll()">
+                            <i class="fas fa-play"></i> Start All
+                        </button>
+                        <button class="btn btn-red" onclick="stopAll()">
+                            <i class="fas fa-stop"></i> Stop All
+                        </button>
+                    </div>
+                </div>
+                <!-- Reuse same lanes container (synced via JS) -->
+                <div class="lanes-grid" id="lanesContainerAlt"></div>
+            </section>
+
+        </main>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer"></div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
